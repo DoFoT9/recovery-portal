@@ -1,0 +1,35 @@
+Recovery Portal
+Copyright Jordan Gall
+
+This product includes software developed by third parties under permissive
+open-source licenses. We gratefully acknowledge their work.
+
+================================================================================
+Direct dependencies (production)
+================================================================================
+
+Next.js (MIT)               https://github.com/vercel/next.js
+React (MIT)                 https://github.com/facebook/react
+better-sqlite3 (MIT)        https://github.com/WiseLibs/better-sqlite3
+jose (MIT)                  https://github.com/panva/jose
+bcryptjs (MIT)              https://github.com/dcodeIO/bcrypt.js
+otplib (MIT)                https://github.com/yeojz/otplib
+qrcode (MIT)                https://github.com/soldair/node-qrcode
+lucide-react (ISC)          https://github.com/lucide-icons/lucide
+sonner (MIT)                https://github.com/emilkowalski/sonner
+clsx (MIT)                  https://github.com/lukeed/clsx
+tailwind-merge (MIT)        https://github.com/dcastil/tailwind-merge
+web-push (MIT)              https://github.com/web-push-libs/web-push
+@ducanh2912/next-pwa (MIT)  https://github.com/DuCanhGH/next-pwa
+server-only (MIT)           https://www.npmjs.com/package/server-only
+
+================================================================================
+Direct dependencies (development)
+================================================================================
+
+TypeScript (Apache-2.0)     https://github.com/microsoft/TypeScript
+Tailwind CSS (MIT)          https://github.com/tailwindlabs/tailwindcss
+PostCSS (MIT)               https://github.com/postcss/postcss
+Autoprefixer (MIT)          https://github.com/postcss/autoprefixer
+
+Full licence texts for each dependency are available in node_modules/<pkg>/LICENSE.

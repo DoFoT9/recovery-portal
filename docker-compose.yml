@@ -1,0 +1,24 @@
+services:
+  recovery-portal:
+    image: ghcr.io/dofot9/recovery-portal:latest
+    # Or build locally: `docker compose build`
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: recovery-portal
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env.local
+    environment:
+      DATA_DIR: /data
+      NODE_ENV: production
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
