@@ -40,8 +40,7 @@ const TTL_MS = 30_000
 
 /**
  * Get the current branding configuration.
- * Returns DEFAULT_BRANDING if the DB or branding table does not exist yet
- * (e.g. during Docker image build before any migration runs).
+ * Returns DEFAULT_BRANDING if the DB or branding table does not exist yet.
  */
 export function getBranding(): Branding {
   if (cache && Date.now() < cache.expiresAt) return cache.branding
@@ -59,7 +58,6 @@ export function getBranding(): Branding {
     cache = { branding, expiresAt: Date.now() + TTL_MS }
     return branding
   } catch {
-    // DB / branding table not available yet (build time, fresh install, etc).
     return { ...DEFAULT_BRANDING }
   }
 }
@@ -85,8 +83,14 @@ export function setBranding(updates: Partial<Branding>) {
   bustBrandingCache()
 }
 
+/**
+ * Resolves the directory where logo/favicon assets are stored.
+ * Respects DATA_DIR env var so it matches the volume mount in Docker.
+ * Falls back to ./data/branding for source installs.
+ */
 export function brandingDir(): string {
-  const dir = path.resolve(process.cwd(), 'data', 'branding')
+  const baseDir = process.env.DATA_DIR || path.resolve(process.cwd(), 'data')
+  const dir = path.join(baseDir, 'branding')
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   return dir
 }
