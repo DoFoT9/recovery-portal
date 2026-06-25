@@ -1,9 +1,12 @@
 #!/usr/bin/env node
-// Creates the base v5 schema if not already present.
-// Idempotent — safe to run multiple times.
+// Creates the COMPLETE current schema.
+// This is the canonical fresh-install path — it creates every table the
+// current application version needs, in one shot.
 //
-// This matches the EXACT schema produced by the original migrate-v5.mjs.
-// Later migrations (v6.1, v7.0, v7.1) add columns and tables on top.
+// The individual migrate-vX-Y.mjs scripts remain for upgrading EXISTING
+// installs from older versions. New installs only need this script.
+//
+// Safe to run multiple times — all DDL uses IF NOT EXISTS / OR IGNORE.
 
 import Database from 'better-sqlite3'
 import path from 'node:path'
@@ -17,33 +20,43 @@ if (!fs.existsSync(DATA_DIR)) {
   console.log(`  \u2713 Created data directory ${DATA_DIR}`)
 }
 
+// Also ensure the branding asset directory exists (logos, favicons)
+const BRANDING_DIR = path.join(DATA_DIR, 'branding')
+if (!fs.existsSync(BRANDING_DIR)) {
+  fs.mkdirSync(BRANDING_DIR, { recursive: true })
+}
+
 const isFresh = !fs.existsSync(DB_PATH)
 const db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
 
 try {
-  // --------------------------------------------------------------------
+  // ====================================================================
+  // CORE TABLES (v5 baseline + v6.1 disabled_at + v7.1 totp_* on users)
+  // ====================================================================
+
   // users
-  // --------------------------------------------------------------------
   db.exec(`
     create table if not exists users (
-      id                    text primary key,
-      email                 text not null unique,
-      full_name             text,
-      password_hash         text not null,
-      role                  text not null check(role in ('admin','client')),
-      created_at            text not null default current_timestamp,
-      theme_preference      text not null default 'system'
-                              check(theme_preference in ('light','dark','system')),
-      last_active_at        text,
-      last_seen_clients_at  text
+      id                     text primary key,
+      email                  text not null unique,
+      full_name              text,
+      password_hash          text not null,
+      role                   text not null check(role in ('admin','client')),
+      created_at             text not null default current_timestamp,
+      theme_preference       text not null default 'system'
+                               check(theme_preference in ('light','dark','system')),
+      last_active_at         text,
+      last_seen_clients_at   text,
+      disabled_at            text,
+      totp_secret_encrypted  text,
+      totp_enabled_at        text,
+      totp_pending           text
     );
   `)
 
-  // --------------------------------------------------------------------
   // rehab_types
-  // --------------------------------------------------------------------
   db.exec(`
     create table if not exists rehab_types (
       id           text primary key,
@@ -55,9 +68,7 @@ try {
     );
   `)
 
-  // --------------------------------------------------------------------
   // stages
-  // --------------------------------------------------------------------
   db.exec(`
     create table if not exists stages (
       id             text primary key,
@@ -70,9 +81,7 @@ try {
     create index if not exists idx_stages_type on stages(rehab_type_id, order_index);
   `)
 
-  // --------------------------------------------------------------------
   // videos
-  // --------------------------------------------------------------------
   db.exec(`
     create table if not exists videos (
       id                  text primary key,
@@ -101,9 +110,7 @@ try {
     create index if not exists idx_videos_type  on videos(rehab_type_id);
   `)
 
-  // --------------------------------------------------------------------
   // client_assignments
-  // --------------------------------------------------------------------
   db.exec(`
     create table if not exists client_assignments (
       id                              text primary key,
@@ -127,9 +134,7 @@ try {
     create index if not exists idx_assignments_client on client_assignments(client_id, status);
   `)
 
-  // --------------------------------------------------------------------
   // assignment_comments
-  // --------------------------------------------------------------------
   db.exec(`
     create table if not exists assignment_comments (
       id             text primary key,
@@ -141,9 +146,7 @@ try {
     create index if not exists idx_comments_assignment on assignment_comments(assignment_id, created_at);
   `)
 
-  // --------------------------------------------------------------------
   // milestones
-  // --------------------------------------------------------------------
   db.exec(`
     create table if not exists milestones (
       id           text primary key,
@@ -156,9 +159,7 @@ try {
     create index if not exists idx_milestones_stage on milestones(stage_id, order_index);
   `)
 
-  // --------------------------------------------------------------------
   // client_milestones
-  // --------------------------------------------------------------------
   db.exec(`
     create table if not exists client_milestones (
       id            text primary key,
@@ -172,9 +173,7 @@ try {
     create index if not exists idx_client_milestones_client on client_milestones(client_id);
   `)
 
-  // --------------------------------------------------------------------
   // video_views
-  // --------------------------------------------------------------------
   db.exec(`
     create table if not exists video_views (
       id          text primary key,
@@ -186,9 +185,7 @@ try {
     create index if not exists idx_video_views_client on video_views(client_id);
   `)
 
-  // --------------------------------------------------------------------
   // push_subscriptions
-  // --------------------------------------------------------------------
   db.exec(`
     create table if not exists push_subscriptions (
       id          text primary key,
@@ -203,20 +200,77 @@ try {
     create index if not exists idx_push_user on push_subscriptions(user_id);
   `)
 
-  const tableCount = db.prepare(`
-    select count(*) as c from sqlite_master
-     where type = 'table'
-       and name in (
-         'users','rehab_types','stages','videos','client_assignments',
-         'assignment_comments','milestones','client_milestones',
-         'video_views','push_subscriptions'
-       )
-  `).get().c
+  // ====================================================================
+  // v7.0 — WHITE-LABEL BRANDING
+  // ====================================================================
+
+  db.exec(`
+    create table if not exists branding (
+      key         text primary key,
+      value       text,
+      updated_at  text default current_timestamp
+    );
+  `)
+
+  // Seed default 2FA enforcement flags (from v7.1)
+  const insertFlag = db.prepare(
+    "insert or ignore into branding (key, value) values (?, ?)"
+  )
+  insertFlag.run('require_2fa_admin',  '1')
+  insertFlag.run('require_2fa_client', '0')
+
+  // ====================================================================
+  // v7.1 — TOTP 2FA SUPPORT TABLES
+  // ====================================================================
+
+  db.exec(`
+    create table if not exists user_recovery_codes (
+      id          text primary key,
+      user_id     text not null references users(id) on delete cascade,
+      code_hash   text not null,
+      created_at  text default current_timestamp,
+      used_at     text
+    );
+    create index if not exists idx_recovery_codes_user on user_recovery_codes(user_id);
+  `)
+
+  db.exec(`
+    create table if not exists user_trusted_devices (
+      id              text primary key,
+      user_id         text not null references users(id) on delete cascade,
+      device_id_hash  text not null,
+      user_agent      text,
+      created_at      text default current_timestamp,
+      last_used_at    text,
+      expires_at      text not null
+    );
+    create index if not exists idx_trusted_devices_user on user_trusted_devices(user_id);
+  `)
+
+  // ====================================================================
+  // Sanity check + report
+  // ====================================================================
+
+  const expectedTables = [
+    'users','rehab_types','stages','videos','client_assignments',
+    'assignment_comments','milestones','client_milestones',
+    'video_views','push_subscriptions',
+    'branding','user_recovery_codes','user_trusted_devices',
+  ]
+  const placeholders = expectedTables.map(() => '?').join(',')
+  const found = db.prepare(
+    `select name from sqlite_master where type='table' and name in (${placeholders}) order by name`
+  ).all(...expectedTables).map(r => r.name)
 
   if (isFresh) {
-    console.log(`  \u2713 Created fresh v5 base schema (${tableCount}/10 core tables)`)
+    console.log(`  \u2713 Created fresh complete schema (${found.length}/${expectedTables.length} tables)`)
   } else {
-    console.log(`  \u2022 Base schema already present (${tableCount}/10 core tables, no changes)`)
+    console.log(`  \u2022 Schema already present (${found.length}/${expectedTables.length} tables, idempotent — no changes)`)
+  }
+
+  const missing = expectedTables.filter(t => !found.includes(t))
+  if (missing.length > 0) {
+    console.warn(`  \u26A0 Missing tables: ${missing.join(', ')}`)
   }
 } catch (err) {
   console.error('\u2717 init-db failed:', err)
