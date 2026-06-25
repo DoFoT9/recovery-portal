@@ -38,20 +38,31 @@ const KEYS = Object.keys(DEFAULT_BRANDING) as (keyof Branding)[]
 let cache: { branding: Branding; expiresAt: number } | null = null
 const TTL_MS = 30_000
 
+/**
+ * Get the current branding configuration.
+ * Returns DEFAULT_BRANDING if the DB or branding table does not exist yet
+ * (e.g. during Docker image build before any migration runs).
+ */
 export function getBranding(): Branding {
   if (cache && Date.now() < cache.expiresAt) return cache.branding
-  const db = getDb()
-  const rows = db.prepare('SELECT key, value FROM branding').all() as { key: string; value: string }[]
-  const map = new Map(rows.map(r => [r.key, r.value]))
-  const branding = { ...DEFAULT_BRANDING }
-  for (const k of KEYS) {
-    const v = map.get(k)
-    if (v !== undefined && v !== null) {
-      ;(branding as any)[k] = v
+  try {
+    const db = getDb()
+    const rows = db.prepare('SELECT key, value FROM branding').all() as { key: string; value: string }[]
+    const map = new Map(rows.map(r => [r.key, r.value]))
+    const branding = { ...DEFAULT_BRANDING }
+    for (const k of KEYS) {
+      const v = map.get(k)
+      if (v !== undefined && v !== null) {
+        ;(branding as any)[k] = v
+      }
     }
+    cache = { branding, expiresAt: Date.now() + TTL_MS }
+    return branding
+  } catch {
+    // DB / branding table not available yet (build time, fresh install, etc).
+    // Return defaults without caching so we try again on next call.
+    return { ...DEFAULT_BRANDING }
   }
-  cache = { branding, expiresAt: Date.now() + TTL_MS }
-  return branding
 }
 
 export function bustBrandingCache() {

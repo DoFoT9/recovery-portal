@@ -4,6 +4,9 @@ import { currentUser } from '@/lib/auth'
 import { getBranding, hexToRgbTriplet } from '@/lib/branding'
 import './globals.css'
 
+// Layout reads branding from the DB; never prerender at build time
+export const dynamic = 'force-dynamic'
+
 export async function generateMetadata(): Promise<Metadata> {
   const b = getBranding()
   return {

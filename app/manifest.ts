@@ -1,6 +1,9 @@
 import type { MetadataRoute } from 'next'
 import { getBranding } from '@/lib/branding'
 
+// Don't try to prerender this at build time — needs DB access at runtime
+export const dynamic = 'force-dynamic'
+
 export default function manifest(): MetadataRoute.Manifest {
   const b = getBranding()
   return {
