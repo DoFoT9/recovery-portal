@@ -9,11 +9,23 @@ services:
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"
-    env_file:
-      - .env.local
+    # Environment variables — all OPTIONAL.
+    # The entrypoint auto-generates AUTH_SECRET and TOTP_ENCRYPTION_KEY on
+    # first start and persists them to /data/secrets.env. Set them here only
+    # if you want explicit control (shared secrets across replicas, secret
+    # manager integration, etc).
     environment:
       DATA_DIR: /data
       NODE_ENV: production
+      # AUTH_SECRET: <32-byte hex>             # optional, auto-generated
+      # TOTP_ENCRYPTION_KEY: <32-byte hex>     # optional, auto-generated
+      # COOKIE_SECURE: "true"                  # set when serving over HTTPS
+      # VAPID_PUBLIC_KEY: <key>                # optional, for Web Push
+      # VAPID_PRIVATE_KEY: <key>
+      # VAPID_SUBJECT: mailto:admin@example.com
+    # Uncomment to provide env vars from a file instead:
+    # env_file:
+    #   - .env.local
     volumes:
       - ./data:/data
     healthcheck:
@@ -21,4 +33,4 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 20s
+      start_period: 30s

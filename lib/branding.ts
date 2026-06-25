@@ -60,7 +60,6 @@ export function getBranding(): Branding {
     return branding
   } catch {
     // DB / branding table not available yet (build time, fresh install, etc).
-    // Return defaults without caching so we try again on next call.
     return { ...DEFAULT_BRANDING }
   }
 }

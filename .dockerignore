@@ -10,7 +10,6 @@ backups
 .env*.local
 npm-debug.log*
 *.tsbuildinfo
-Dockerfile
 docker-compose.yml
 .dockerignore
 .gitignore

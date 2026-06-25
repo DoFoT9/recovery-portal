@@ -1,6 +1,6 @@
 {
   "name": "recovery-portal",
-  "version": "7.2.0",
+  "version": "7.2.5",
   "private": false,
   "description": "Self-hosted rehab programme management for physiotherapy and recovery clinics. White-label ready.",
   "homepage": "https://github.com/DoFoT9/recovery-portal",
@@ -13,11 +13,15 @@
   },
   "author": "Jordan Gall",
   "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "init:admin": "node scripts/create-admin.mjs",
+    "init:db": "node scripts/init-db.mjs",
     "init:secrets": "bash scripts/init-secrets.sh",
     "reset": "node scripts/reset.mjs",
     "migrate": "node scripts/migrate-v5.mjs",
@@ -26,7 +30,7 @@
     "migrate:v7-0": "node scripts/migrate-v7-0.mjs",
     "migrate:v7-1": "node scripts/migrate-v7-1.mjs",
     "migrate:v7-2": "node scripts/migrate-v7-2.mjs",
-    "migrate:all": "node scripts/migrate-v7-0.mjs && node scripts/migrate-v6-1.mjs && node scripts/migrate-v7-1.mjs && node scripts/migrate-v7-2.mjs",
+    "migrate:all": "node scripts/migrate-all.mjs",
     "vapid": "npx web-push generate-vapid-keys",
     "backup": "bash scripts/backup.sh",
     "restore": "bash scripts/restore.sh"
@@ -34,7 +38,7 @@
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^11.8.1",
+    "better-sqlite3": "^12.0.0",
     "clsx": "^2.1.1",
     "jose": "^5.9.6",
     "lucide-react": "^0.468.0",

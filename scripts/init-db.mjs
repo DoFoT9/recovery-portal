@@ -203,7 +203,6 @@ try {
     create index if not exists idx_push_user on push_subscriptions(user_id);
   `)
 
-  // Sanity check: count tables we expect to find
   const tableCount = db.prepare(`
     select count(*) as c from sqlite_master
      where type = 'table'
