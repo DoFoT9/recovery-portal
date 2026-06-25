@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Activity } from 'lucide-react'
+import Link from 'next/link'
 
 interface Props {
   portalName: string
@@ -33,14 +34,9 @@ export default function LoginForm({ portalName, tagline, hasLogo, footerClinicNa
         return
       }
       const data = await res.json()
-      if (data.challenge) {
-        router.push('/login/2fa')
-        return
-      }
+      if (data.challenge) { router.push('/login/2fa'); return }
       location.href = '/'
-    } finally {
-      setBusy(false)
-    }
+    } finally { setBusy(false) }
   }
 
   return (
@@ -49,11 +45,7 @@ export default function LoginForm({ portalName, tagline, hasLogo, footerClinicNa
         <div className="text-center space-y-3">
           {hasLogo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src="/api/branding/logo"
-              alt={portalName}
-              className="h-16 w-auto max-w-full mx-auto object-contain"
-            />
+            <img src="/api/branding/logo" alt={portalName} className="h-16 w-auto max-w-full mx-auto object-contain" />
           ) : (
             <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-brand text-white">
               <Activity className="h-7 w-7" />
@@ -68,11 +60,16 @@ export default function LoginForm({ portalName, tagline, hasLogo, footerClinicNa
             <input type="email" className="input mt-1" required value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
           </div>
           <div>
-            <label className="text-xs text-neutral-500">Password</label>
+            <label className="text-xs text-neutral-500 flex items-center justify-between">
+              <span>Password</span>
+              <Link href="/forgot-password" className="text-[11px] text-brand hover:underline font-normal">
+                Forgot password?
+              </Link>
+            </label>
             <input type="password" className="input mt-1" required value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" />
           </div>
           <button className="btn-primary w-full" disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
+            {busy ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
         <p className="text-xs text-neutral-500 text-center">Need help? Contact your clinician.</p>

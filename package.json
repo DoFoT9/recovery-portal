@@ -1,21 +1,14 @@
 {
   "name": "recovery-portal",
-  "version": "7.2.5",
+  "version": "7.3.0",
   "private": false,
   "description": "Self-hosted rehab programme management for physiotherapy and recovery clinics. White-label ready.",
   "homepage": "https://github.com/DoFoT9/recovery-portal",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/DoFoT9/recovery-portal.git"
-  },
-  "bugs": {
-    "url": "https://github.com/DoFoT9/recovery-portal/issues"
-  },
+  "repository": { "type": "git", "url": "https://github.com/DoFoT9/recovery-portal.git" },
+  "bugs": { "url": "https://github.com/DoFoT9/recovery-portal/issues" },
   "author": "Jordan Gall",
   "license": "SEE LICENSE IN LICENSE",
-  "engines": {
-    "node": ">=22.0.0"
-  },
+  "engines": { "node": ">=22.0.0" },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -30,6 +23,7 @@
     "migrate:v7-0": "node scripts/migrate-v7-0.mjs",
     "migrate:v7-1": "node scripts/migrate-v7-1.mjs",
     "migrate:v7-2": "node scripts/migrate-v7-2.mjs",
+    "migrate:v7-3": "node scripts/migrate-v7-3.mjs",
     "migrate:all": "node scripts/migrate-all.mjs",
     "vapid": "npx web-push generate-vapid-keys",
     "backup": "bash scripts/backup.sh",
@@ -43,6 +37,7 @@
     "jose": "^5.9.6",
     "lucide-react": "^0.468.0",
     "next": "^15.1.0",
+    "nodemailer": "^6.9.16",
     "otplib": "^12.0.1",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",
@@ -56,6 +51,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.2",
+    "@types/nodemailer": "^6.4.17",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",

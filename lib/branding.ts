@@ -4,18 +4,36 @@ import fs from 'node:fs'
 import { getDb } from './db'
 
 export interface Branding {
+  // Identity
   portal_name: string
   tagline: string
   brand_color: string
   brand_color_dark: string
   logo_filename: string | null
   favicon_filename: string | null
+
+  // Footer
   footer_clinic_name: string | null
   footer_contact: string | null
   footer_abn: string | null
   footer_support_url: string | null
+
+  // Email identity (used in headers / from-name)
   email_from_name: string | null
   email_reply_to: string | null
+
+  // Email provider selection + SMTP config (v7.3)
+  email_provider: 'console' | 'smtp' | null
+  smtp_host: string | null
+  smtp_port: string | null
+  smtp_secure: '0' | '1' | null
+  smtp_user: string | null
+  smtp_from_email: string | null
+  smtp_password_encrypted: string | null
+
+  // Email behaviour
+  email_send_welcome: '0' | '1' | null
+  app_base_url: string | null
 }
 
 export const DEFAULT_BRANDING: Branding = {
@@ -31,6 +49,15 @@ export const DEFAULT_BRANDING: Branding = {
   footer_support_url: null,
   email_from_name: null,
   email_reply_to: null,
+  email_provider: null,
+  smtp_host: null,
+  smtp_port: null,
+  smtp_secure: null,
+  smtp_user: null,
+  smtp_from_email: null,
+  smtp_password_encrypted: null,
+  email_send_welcome: null,
+  app_base_url: null,
 }
 
 const KEYS = Object.keys(DEFAULT_BRANDING) as (keyof Branding)[]
@@ -38,10 +65,6 @@ const KEYS = Object.keys(DEFAULT_BRANDING) as (keyof Branding)[]
 let cache: { branding: Branding; expiresAt: number } | null = null
 const TTL_MS = 30_000
 
-/**
- * Get the current branding configuration.
- * Returns DEFAULT_BRANDING if the DB or branding table does not exist yet.
- */
 export function getBranding(): Branding {
   if (cache && Date.now() < cache.expiresAt) return cache.branding
   try {
@@ -51,7 +74,7 @@ export function getBranding(): Branding {
     const branding = { ...DEFAULT_BRANDING }
     for (const k of KEYS) {
       const v = map.get(k)
-      if (v !== undefined && v !== null) {
+      if (v !== undefined && v !== null && v !== '') {
         ;(branding as any)[k] = v
       }
     }
@@ -83,11 +106,6 @@ export function setBranding(updates: Partial<Branding>) {
   bustBrandingCache()
 }
 
-/**
- * Resolves the directory where logo/favicon assets are stored.
- * Respects DATA_DIR env var so it matches the volume mount in Docker.
- * Falls back to ./data/branding for source installs.
- */
 export function brandingDir(): string {
   const baseDir = process.env.DATA_DIR || path.resolve(process.cwd(), 'data')
   const dir = path.join(baseDir, 'branding')
