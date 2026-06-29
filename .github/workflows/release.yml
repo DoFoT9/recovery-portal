@@ -42,7 +42,7 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: |
             ghcr.io/dofot9/recovery-portal:${{ steps.meta.outputs.version }}
             ghcr.io/dofot9/recovery-portal:latest
