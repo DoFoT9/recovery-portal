@@ -4,6 +4,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 
 const SCRIPTS_DIR = path.resolve(process.cwd(), 'scripts')
+
 const STEPS = [
   { name: 'init-db.mjs', mandatory: true },
   { name: 'migrate-v6-1.mjs', mandatory: false },
@@ -11,6 +12,8 @@ const STEPS = [
   { name: 'migrate-v7-1.mjs', mandatory: false },
   { name: 'migrate-v7-2.mjs', mandatory: false },
   { name: 'migrate-v7-3.mjs', mandatory: false },
+  { name: 'migrate-v7-4-1.mjs', mandatory: false },
+  { name: 'migrate-v7-4-5.mjs', mandatory: false },
 ]
 
 let exitCode = 0
@@ -25,5 +28,6 @@ for (const { name, mandatory } of STEPS) {
   const r = spawnSync('node', [p], { stdio: 'inherit', env: process.env })
   if (r.status !== 0) { console.error(`\u2717 ${name} failed`); exitCode = r.status || 1; break }
 }
+
 if (exitCode === 0) console.log('\n\u2713 All migrations complete.')
 else process.exit(exitCode)

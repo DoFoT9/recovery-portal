@@ -151,6 +151,15 @@ try {
       expires_at text not null, used_at text
     );
     create index if not exists idx_setup_user on email_setup_tokens(user_id);
+  create table if not exists video_frames (
+    video_id     text not null references videos(id) on delete cascade,
+    slot         integer not null check(slot in (1, 2, 3, 4)),
+    file_path    text not null,
+    captured_at  text not null default current_timestamp,
+    captured_by  text references users(id) on delete set null,
+    primary key (video_id, slot)
+  );
+  create index if not exists idx_video_frames_video on video_frames(video_id);
   `)
 
   const f = db.prepare("insert or ignore into branding (key, value) values (?, ?)")
