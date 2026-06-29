@@ -1,5 +1,4 @@
 'use client'
-
 import { useEffect, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
@@ -50,25 +49,17 @@ export default function ClientTabs({
   const [active, setActive] = useState<TabKey>(initialTab)
   const [, startTransition] = useTransition()
 
-  // One-shot guard: only fire the mark-as-read endpoint once per client per
-  // session. Switching tabs back and forth shouldn't hammer the server.
   const clearedRef = useRef(false)
 
-  // Mark conversations as read ONLY when the Conversations tab is active.
-  // Fires on mount if the user lands directly on ?tab=conversations,
-  // or when they click into the Conversations tab.
   useEffect(() => {
     if (active !== 'conversations') return
     if (clearedRef.current) return
     clearedRef.current = true
-
     fetch(`/api/inbox/${client.id}/read`, { method: 'POST' })
       .then(() => {
         window.dispatchEvent(new Event('inbox:refresh'))
       })
-      .catch(() => {
-        // Silent — UX impact is minor and the next refresh will reconcile
-      })
+      .catch(() => {})
   }, [active, client.id])
 
   const setTab = (k: TabKey) => {
@@ -81,9 +72,7 @@ export default function ClientTabs({
   const activeCount    = assignments.filter(a => a.status !== 'completed').length
   const completedCount = assignments.filter(a => a.status === 'completed').length
   const nextAssignment = assignments.find(a => a.status !== 'completed')
-
   const hasAnyComments = assignments.length > 0
-
   const totalUnread = Object.values(unreadByAssignment).reduce((a, b) => a + b, 0)
 
   return (
@@ -108,9 +97,6 @@ export default function ClientTabs({
         <div className="flex gap-1 sm:gap-4 overflow-x-auto" role="tablist">
           {TAB_DEFS.map(({ key, label, Icon }) => {
             const isActive = active === key
-            // Surface unread count on the Conversations tab only when it's
-            // NOT the active tab — once active, the per-assignment badges
-            // inside the panel are enough.
             const showUnreadBadge = key === 'conversations' && !isActive && totalUnread > 0
             return (
               <button
@@ -144,7 +130,7 @@ export default function ClientTabs({
             <dl className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <dt className="text-neutral-500">Full name</dt>
-                <dd>{client.full_name || '—'}</dd>
+                <dd>{client.full_name || '\u2014'}</dd>
               </div>
               <div>
                 <dt className="text-neutral-500">Email</dt>
@@ -164,7 +150,6 @@ export default function ClientTabs({
               </div>
             </dl>
           </section>
-
           <section className="card space-y-2">
             <h2 className="font-semibold">Next assignment</h2>
             {nextAssignment ? (
@@ -186,7 +171,6 @@ export default function ClientTabs({
               <p className="text-sm text-neutral-500">No active assignments.</p>
             )}
           </section>
-
           <section className="card lg:col-span-3 space-y-2">
             <h2 className="font-semibold">Recent activity</h2>
             {activity.length === 0 ? (
@@ -198,7 +182,7 @@ export default function ClientTabs({
                     <span className="text-neutral-700 dark:text-neutral-200">
                       <span className="text-neutral-400">{a.actor || 'someone'}</span>{' '}
                       {KIND_LABEL[a.kind] || a.kind}{' '}
-                      <span className="text-neutral-500">— {a.type_name}</span>
+                      <span className="text-neutral-500">{'\u2014'} {a.type_name}</span>
                       {a.detail && (
                         <span className="block text-xs text-neutral-500 mt-0.5 line-clamp-1">
                           {a.detail}
@@ -219,6 +203,7 @@ export default function ClientTabs({
       {active === 'assignments' && (
         <AssignmentManager
           clientId={client.id}
+          clientEmail={client.email}
           rehabTypes={rehabTypes}
           existing={assignments}
           unreadByAssignment={unreadByAssignment}
@@ -232,7 +217,7 @@ export default function ClientTabs({
             <EmptyState
               icon={<MessageCircle className="h-10 w-10" strokeWidth={1.5} />}
               title="No assignments yet"
-              description="Create an assignment first — conversations are scoped per assignment."
+              description="Create an assignment first \u2014 conversations are scoped per assignment."
             />
           ) : (
             assignments.map(a => {

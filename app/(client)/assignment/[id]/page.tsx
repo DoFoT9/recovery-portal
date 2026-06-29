@@ -1,12 +1,15 @@
 import { requireUser } from '@/lib/auth'
 import { getDb } from '@/lib/db'
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { ProgressBar } from '@/components/shared/ProgressBar'
 import { VideoCard } from '@/components/client/VideoCard'
 import { CommentsThread } from '@/components/client/CommentsThread'
 import { MarkCompleteButton } from '@/components/client/MarkCompleteButton'
 import { MilestoneList } from '@/components/client/MilestoneList'
+import { ProgrammePdfDownloadButton } from '@/components/client/ProgrammePdfDownloadButton'
 import {
   getCombinedAssignmentProgress,
   listClientMilestonesForStage,
@@ -71,9 +74,22 @@ export default async function AssignmentDetail({ params }: { params: Promise<{ i
   }
 
   const progress = getCombinedAssignmentProgress(assignment.id)
+  const isAdminViewing = user.role === 'admin' && assignment.client_id !== user.id
 
   return (
     <div className="max-w-3xl mx-auto p-4 lg:p-6 space-y-6">
+      {/* v7.4.5.1: if an admin landed here (e.g. via a notification), point them back to where the PDF tools live */}
+      {isAdminViewing && (
+        <div className="card bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-900/50 text-sm">
+          <p className="text-blue-800 dark:text-blue-200">
+            You're viewing this client's assignment as an admin. PDF tools (download, email, title override) live in the{' '}
+            <Link href={`/admin/clients/${assignment.client_id}?tab=assignments`} className="underline font-medium inline-flex items-center gap-1">
+              <ArrowLeft className="h-3 w-3" /> client's Assignments tab
+            </Link>.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full" style={{ background: assignment.type_color }} />
@@ -86,7 +102,13 @@ export default async function AssignmentDetail({ params }: { params: Promise<{ i
             <ProgressBar percent={progress.percent} label={`${progress.done} / ${progress.total}`} />
           </div>
         </div>
-        <MarkCompleteButton assignmentId={assignment.id} status={assignment.status} />
+        <div className="flex flex-wrap gap-2">
+          <MarkCompleteButton assignmentId={assignment.id} status={assignment.status} />
+          {/* Only the actual client owner sees the download button - admins use the toolbar in AssignmentManager */}
+          {!isAdminViewing && (
+            <ProgrammePdfDownloadButton assignmentId={assignment.id} />
+          )}
+        </div>
       </div>
 
       {assignment.admin_recommendations && (

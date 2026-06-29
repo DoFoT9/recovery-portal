@@ -1,19 +1,22 @@
 'use client'
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Trash2, ChevronDown, ChevronRight, Save, Dumbbell, MessageCircle } from 'lucide-react'
+import { Trash2, ChevronDown, ChevronRight, Save, Dumbbell, MessageCircle, FileText } from 'lucide-react'
 import { AssignmentStatusControl } from '@/components/admin/AssignmentStatusControl'
 import { ProgressBar } from '@/components/shared/ProgressBar'
 import { CommentsThread } from '@/components/client/CommentsThread'
+import { ProgrammeAdminToolbar } from '@/components/admin/ProgrammeAdminToolbar'
 import { timeAgo } from '@/lib/utils'
 
 interface RehabType { id: string, name: string, color: string, stages: any[] }
 
 export function AssignmentManager({
-  clientId, rehabTypes, existing, unreadByAssignment, currentUserId,
+  clientId, clientEmail, rehabTypes, existing, unreadByAssignment, currentUserId,
 }: {
   clientId: string,
+  clientEmail: string | null,
   rehabTypes: RehabType[],
   existing: any[],
   unreadByAssignment: Record<string, number>,
@@ -106,7 +109,7 @@ export function AssignmentManager({
       <form onSubmit={assign} className="card space-y-3">
         <h2 className="font-semibold">New Assignment</h2>
         <select className="input" value={typeId} onChange={e => { setTypeId(e.target.value); setStageId('') }}>
-          <option value="">— Pick a rehab type —</option>
+          <option value="">{'\u2014 Pick a rehab type \u2014'}</option>
           {rehabTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
         {selectedType && (
@@ -125,7 +128,7 @@ export function AssignmentManager({
         <p className="text-xs text-neutral-500">
           Heads-up: if this client previously had progress (milestones or video views) in this scope, those will be cleared so the new assignment starts fresh.
         </p>
-        <button className="btn-primary" disabled={busy}>{busy ? 'Assigning…' : 'Assign'}</button>
+        <button className="btn-primary" disabled={busy}>{busy ? 'Assigning\u2026' : 'Assign'}</button>
       </form>
 
       <div className="card">
@@ -134,6 +137,9 @@ export function AssignmentManager({
         <div className="divide-y divide-neutral-200 dark:divide-neutral-800">
           {existing.map((a: any) => {
             const unread = unreadByAssignment[a.id] || 0
+            const defaultProgrammeTitle = a.stage_name
+              ? `${a.type_name} \u2014 ${a.stage_name}`
+              : a.type_name
             return (
               <div key={a.id} className="py-3 space-y-2">
                 <div className="flex items-start gap-2">
@@ -144,6 +150,11 @@ export function AssignmentManager({
                   <div className="flex-1 min-w-0">
                     <div className="font-medium flex items-center gap-2 flex-wrap">
                       {a.type_name}
+                      {a.programme_title && (
+                        <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide font-medium text-brand bg-brand/10 rounded px-1.5 py-0.5">
+                          <FileText className="h-3 w-3" /> custom title
+                        </span>
+                      )}
                       {unread > 0 && (
                         <span className="inline-flex items-center gap-0.5 text-xs bg-amber-500 text-white rounded-full px-1.5 py-0.5">
                           <MessageCircle className="h-3 w-3" /> {unread} new
@@ -155,7 +166,6 @@ export function AssignmentManager({
                   <AssignmentStatusControl assignmentId={a.id} status={a.status} />
                   <button onClick={() => remove(a.id)} className="btn-danger !p-2"><Trash2 className="h-4 w-4" /></button>
                 </div>
-
                 <div className="ml-8 space-y-1">
                   <ProgressBar
                     percent={a.progress?.percent ?? 0}
@@ -163,12 +173,11 @@ export function AssignmentManager({
                   />
                   <div className="text-xs text-neutral-500 flex justify-between">
                     <span>
-                      {a.progress?.completedMilestones ?? 0} milestone(s) · {a.progress?.watchedVideos ?? 0} video(s) watched
+                      {a.progress?.completedMilestones ?? 0} milestone(s) {'\u00b7'} {a.progress?.watchedVideos ?? 0} video(s) watched
                     </span>
                     <span>Last activity: {timeAgo(a.last_activity_at)}</span>
                   </div>
                 </div>
-
                 {expanded[a.id] && (
                   <div className="ml-8 space-y-4 pt-2">
                     <form onSubmit={e => saveRecs(e, a.id)} className="space-y-2">
@@ -177,7 +186,6 @@ export function AssignmentManager({
                         placeholder="Recommendations / notes" />
                       <button className="btn-primary !py-1.5"><Save className="h-4 w-4" /> Save notes</button>
                     </form>
-
                     <form onSubmit={e => saveOverrides(e, a.id)} className="space-y-2">
                       <label className="text-xs uppercase tracking-wide text-neutral-500 flex items-center gap-1">
                         <Dumbbell className="h-3 w-3" /> Exercise overrides (optional)
@@ -186,13 +194,21 @@ export function AssignmentManager({
                         <NumField name="override_sets"         label="Sets"           defaultValue={a.override_sets} />
                         <NumField name="override_reps"         label="Reps"           defaultValue={a.override_reps} />
                         <NumField name="override_hold_seconds" label="Hold (s)"       defaultValue={a.override_hold_seconds} />
-                        <NumField name="override_rom_degrees"  label="Target ROM (°)" defaultValue={a.override_rom_degrees} />
+                        <NumField name="override_rom_degrees"  label="Target ROM (\u00b0)" defaultValue={a.override_rom_degrees} />
                       </div>
                       <p className="text-xs text-neutral-500">
                         Leave blank to use the video defaults. Overrides apply to every video in this assignment.
                       </p>
                       <button className="btn-primary !py-1.5"><Save className="h-4 w-4" /> Save overrides</button>
                     </form>
+
+                    {/* v7.4.5.1: PDF tools moved here from the standalone assignment page */}
+                    <ProgrammeAdminToolbar
+                      assignmentId={a.id}
+                      clientEmail={clientEmail}
+                      initialProgrammeTitle={a.programme_title || null}
+                      defaultProgrammeTitle={defaultProgrammeTitle}
+                    />
 
                     {/* Inline conversation for THIS assignment */}
                     <div>
