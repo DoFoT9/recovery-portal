@@ -9,6 +9,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params
   const body = await req.json()
   const db = getDb()
+
   const current = db.prepare("select * from client_assignments where id=?").get(id) as any
   if (!current) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -19,6 +20,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!isAdmin) {
     if (body.admin_recommendations !== undefined) {
       return NextResponse.json({ error: 'Clients cannot edit recommendations' }, { status: 403 })
+    }
+    if (body.programme_title !== undefined) {
+      return NextResponse.json({ error: 'Clients cannot edit programme title' }, { status: 403 })
     }
     for (const f of overrideFields) {
       if (body[f] !== undefined) {
@@ -48,10 +52,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       updates.push('completed_at = ?'); values.push(null)
     }
   }
+
   if (body.admin_recommendations !== undefined) {
     updates.push('admin_recommendations = ?')
     values.push(body.admin_recommendations)
   }
+
+  // v7.4.5: programme title override
+  if (body.programme_title !== undefined) {
+    const v = body.programme_title
+    updates.push('programme_title = ?')
+    values.push(v === null || v === '' ? null : String(v).trim().slice(0, 200))
+  }
+
   for (const f of overrideFields) {
     if (body[f] !== undefined) {
       updates.push(`${f} = ?`)

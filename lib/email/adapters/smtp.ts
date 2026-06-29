@@ -12,7 +12,7 @@ export function createSmtpAdapter(config: EmailConfig): EmailAdapter {
     auth: user ? { user, pass: password } : undefined,
     connectionTimeout: 10_000,
     greetingTimeout: 5_000,
-    socketTimeout: 30_000,
+    socketTimeout: 60_000,
   })
 
   const fromAddress = `"${config.fromName}" <${config.fromEmail || user}>`
@@ -27,6 +27,11 @@ export function createSmtpAdapter(config: EmailConfig): EmailAdapter {
         html: msg.html,
         text: msg.text,
         replyTo: msg.replyTo || config.replyTo || undefined,
+        attachments: msg.attachments?.map(a => ({
+          filename: a.filename,
+          content: a.content as Buffer,
+          contentType: a.contentType,
+        })),
       })
       return { messageId: info.messageId }
     },

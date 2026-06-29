@@ -4,7 +4,7 @@ import { createConsoleAdapter } from './adapters/console'
 import { createSmtpAdapter } from './adapters/smtp'
 import { renderTemplate, type TemplateName, type TemplateVars } from './templates'
 import { log } from '@/lib/log'
-import type { EmailAdapter } from './types'
+import type { EmailAdapter, EmailAttachment } from './types'
 
 function getAdapter(): EmailAdapter {
   const config = getEmailConfig()
@@ -20,13 +20,25 @@ export async function sendBrandedEmail<T extends TemplateName>(opts: {
   template: T
   vars: TemplateVars[T]
   replyTo?: string
+  attachments?: EmailAttachment[]
 }) {
   try {
     const { subject, html, text } = await renderTemplate(opts.template, opts.vars)
     const adapter = getAdapter()
-    const result = await adapter.send({ to: opts.to, subject, html, text, replyTo: opts.replyTo })
+    const result = await adapter.send({
+      to: opts.to,
+      subject,
+      html,
+      text,
+      replyTo: opts.replyTo,
+      attachments: opts.attachments,
+    })
     log.info('email.sent', {
-      to: opts.to, template: opts.template, provider: adapter.name, messageId: result.messageId,
+      to: opts.to,
+      template: opts.template,
+      provider: adapter.name,
+      messageId: result.messageId,
+      attachments: opts.attachments?.length || 0,
     })
     return { ok: true, messageId: result.messageId }
   } catch (err: any) {

@@ -1,9 +1,16 @@
+export interface EmailAttachment {
+  filename: string
+  content: Buffer | Uint8Array
+  contentType: string
+}
+
 export interface EmailMessage {
   to: string
   subject: string
   html: string
   text: string
   replyTo?: string
+  attachments?: EmailAttachment[]
 }
 
 export interface EmailAdapter {

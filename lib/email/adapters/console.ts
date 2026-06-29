@@ -14,6 +14,12 @@ export function createConsoleAdapter(): EmailAdapter {
       console.log(msg.text)
       console.log(line)
       console.log(`[EMAIL] (HTML: ${msg.html.length} chars)`)
+      if (msg.attachments && msg.attachments.length > 0) {
+        for (const a of msg.attachments) {
+          const size = (a.content as any).byteLength || (a.content as any).length || 0
+          console.log(`[EMAIL] Attachment: ${a.filename} (${a.contentType}, ${size} bytes)`)
+        }
+      }
       console.log(line + '\n')
       return { messageId: `console-${Date.now()}` }
     },
