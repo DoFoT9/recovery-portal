@@ -2,7 +2,8 @@
 # Recovery Portal Docker entrypoint
 # Handles: ownership fix-up, secret generation, DB init, migrations, then app start.
 # Designed to be run as root inside the container so it can correct bind-mount
-# ownership, then drops to the nextjs user via su-exec.
+# ownership, then drops to the nextjs user via gosu.
+
 set -e
 
 DATA_DIR="${DATA_DIR:-/data}"
@@ -12,10 +13,7 @@ SECRETS_FILE="$DATA_DIR/secrets.env"
 
 # ---------------------------------------------------------------------------
 # 0. Fix ownership of the data volume
-# Bind mounts from the host often come in owned by root or some other uid that
-# does not match our in-container app user. Fix it before doing anything.
 # ---------------------------------------------------------------------------
-
 mkdir -p "$DATA_DIR"
 
 if [ "$(id -u)" = "0" ]; then
@@ -29,7 +27,6 @@ fi
 # ---------------------------------------------------------------------------
 # 1. Secrets - load existing if present, otherwise generate and persist
 # ---------------------------------------------------------------------------
-
 if [ -f "$SECRETS_FILE" ]; then
   echo "-> Loading secrets from $SECRETS_FILE"
   # shellcheck disable=SC1090
@@ -77,15 +74,12 @@ fi
 
 # ---------------------------------------------------------------------------
 # 2. Schema + migrations
-# Run as the app user so any files the migrations create end up with the right
-# ownership.
 # ---------------------------------------------------------------------------
-
 echo ""
 echo "-> Initialising database schema and running migrations"
 
 if [ "$(id -u)" = "0" ]; then
-  su-exec "$APP_UID:$APP_GID" env \
+  gosu "$APP_UID:$APP_GID" env \
     DATA_DIR="$DATA_DIR" \
     AUTH_SECRET="$AUTH_SECRET" \
     TOTP_ENCRYPTION_KEY="$TOTP_ENCRYPTION_KEY" \
@@ -97,12 +91,11 @@ fi
 # ---------------------------------------------------------------------------
 # 3. Hand off to the real command, dropping privileges if we are root
 # ---------------------------------------------------------------------------
-
 echo ""
 echo "-> Starting application"
 
 if [ "$(id -u)" = "0" ]; then
-  exec su-exec "$APP_UID:$APP_GID" "$@"
+  exec gosu "$APP_UID:$APP_GID" "$@"
 else
   exec "$@"
 fi

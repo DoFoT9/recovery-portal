@@ -4,11 +4,18 @@
   "private": false,
   "description": "Self-hosted rehab programme management for physiotherapy and recovery clinics. White-label ready.",
   "homepage": "https://github.com/DoFoT9/recovery-portal",
-  "repository": { "type": "git", "url": "https://github.com/DoFoT9/recovery-portal.git" },
-  "bugs": { "url": "https://github.com/DoFoT9/recovery-portal/issues" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DoFoT9/recovery-portal.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DoFoT9/recovery-portal/issues"
+  },
   "author": "Jordan Gall",
   "license": "SEE LICENSE IN LICENSE",
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -27,7 +34,8 @@
     "migrate:all": "node scripts/migrate-all.mjs",
     "vapid": "npx web-push generate-vapid-keys",
     "backup": "bash scripts/backup.sh",
-    "restore": "bash scripts/restore.sh"
+    "restore": "bash scripts/restore.sh",
+    "migrate:v7-4": "node scripts/migrate-v7-4.mjs"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -39,6 +47,7 @@
     "next": "^15.1.0",
     "nodemailer": "^6.9.16",
     "otplib": "^12.0.1",
+    "playwright": "^1.61.1",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

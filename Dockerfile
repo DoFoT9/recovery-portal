@@ -24,12 +24,22 @@ RUN npm run build
 # ============================================================================
 # Stage 2: runtime
 # ============================================================================
-FROM node:24-alpine AS runner
+# Playwright/Chromium needs glibc, so we switch from alpine to debian-slim here.
+# This is a ~80 MB increase in the final image but is the supported path -
+# alpine + chromium is unmaintained and breaks regularly.
+FROM node:24-bookworm-slim AS runner
 
-# su-exec lets the entrypoint drop from root to the nextjs user without forking
-RUN apk add --no-cache libc6-compat tini wget su-exec && \
-    addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001 -G nodejs
+# tini handles signal forwarding; gosu lets us drop privileges (debian's su-exec equivalent)
+# Plus Chromium's system dependencies. Keep this list pruned - every package costs MB.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tini gosu wget ca-certificates \
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libpango-1.0-0 libcairo2 libasound2 libatspi2.0-0 \
+    fonts-liberation fonts-noto-color-emoji \
+  && rm -rf /var/lib/apt/lists/* \
+  && groupadd -g 1001 nodejs \
+  && useradd -u 1001 -g nodejs -m -s /bin/bash nextjs
 
 WORKDIR /app
 
@@ -40,6 +50,10 @@ ENV HOSTNAME=0.0.0.0
 ENV DATA_DIR=/data
 ENV APP_UID=1001
 ENV APP_GID=1001
+
+# Playwright cache lives in a known location so the install in the builder stage
+# and the runtime stage agree.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # Copy Next.js standalone output
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
@@ -55,6 +69,18 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/better-sqlite3 ./nod
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/bindings ./node_modules/bindings
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/file-uri-to-path ./node_modules/file-uri-to-path
 
+# Playwright runtime - copy the playwright package and download the matching Chromium.
+# We install just the chromium binary (skip firefox/webkit) to save ~300 MB.
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/playwright ./node_modules/playwright
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/playwright-core ./node_modules/playwright-core
+
+# Download Chromium into the persistent PLAYWRIGHT_BROWSERS_PATH
+RUN mkdir -p ${PLAYWRIGHT_BROWSERS_PATH} \
+  && chown -R nextjs:nodejs ${PLAYWRIGHT_BROWSERS_PATH} \
+  && cd /app \
+  && npx --no-install playwright install chromium \
+  && chown -R nextjs:nodejs ${PLAYWRIGHT_BROWSERS_PATH}
+
 # Entrypoint that handles ownership, secret generation, schema init, and migrations
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
@@ -67,7 +93,7 @@ VOLUME ["/data"]
 RUN mkdir -p /data && chown nextjs:nodejs /data
 
 # Container starts as root so the entrypoint can fix bind-mount ownership.
-# The entrypoint then drops to the nextjs user via su-exec before exec'ing the app.
+# The entrypoint then drops to the nextjs user via gosu before exec'ing the app.
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
