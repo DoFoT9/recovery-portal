@@ -33,7 +33,7 @@ sudo apt install -y build-essential cmake git ffmpeg
 sudo mkdir -p /opt/whisper.cpp
 sudo chown $USER:$USER /opt/whisper.cpp
 cd /opt
-git clone --depth 1 https://github.com/ggerganov/whisper.cpp.git
+git clone --depth 1 https://github.com/ggml-org/whisper.cpp.git
 cd whisper.cpp
 
 # Build with portable flags (works across CPU generations)
