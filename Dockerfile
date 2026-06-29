@@ -91,9 +91,16 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/playwright-core ./no
 COPY --from=builder --chown=nextjs:nodejs ${PLAYWRIGHT_BROWSERS_PATH} ${PLAYWRIGHT_BROWSERS_PATH}
 RUN chown -R nextjs:nodejs ${PLAYWRIGHT_BROWSERS_PATH}
 
-# whisper.cpp binary + base.en model (~140 MB)
-COPY --from=builder /opt/whisper.cpp/build/bin/whisper-cli /opt/whisper.cpp/build/bin/whisper-cli
+# whisper.cpp binary + shared libraries + base.en model (~140 MB)
+# The binary dynamically links to libwhisper.so, libggml.so, etc.
+COPY --from=builder /opt/whisper.cpp/build/bin /opt/whisper.cpp/build/bin
+COPY --from=builder /opt/whisper.cpp/build/src /opt/whisper.cpp/build/src
+COPY --from=builder /opt/whisper.cpp/build/ggml /opt/whisper.cpp/build/ggml
 COPY --from=builder /opt/whisper.cpp/models/ggml-base.en.bin /opt/whisper.cpp/models/ggml-base.en.bin
+
+# Tell the dynamic linker where to find the whisper.cpp shared libraries
+ENV LD_LIBRARY_PATH=/opt/whisper.cpp/build/src:/opt/whisper.cpp/build/ggml/src
+
 RUN chown -R nextjs:nodejs /opt/whisper.cpp
 
 # Entrypoint
