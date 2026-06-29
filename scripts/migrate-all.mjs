@@ -14,6 +14,7 @@ const STEPS = [
   { name: 'migrate-v7-3.mjs', mandatory: false },
   { name: 'migrate-v7-4-1.mjs', mandatory: false },
   { name: 'migrate-v7-4-5.mjs', mandatory: false },
+  { name: 'migrate-v7-5-1.mjs', mandatory: false },
 ]
 
 let exitCode = 0
