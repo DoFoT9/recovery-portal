@@ -26,7 +26,7 @@ RUN mkdir -p ${PLAYWRIGHT_BROWSERS_PATH} \
 # CPU features that may not exist on the runtime host).
 # ----------------------------------------------------------------------------
 ENV WHISPER_DIR=/opt/whisper.cpp
-RUN git clone --depth 1 https://github.com/ggml-org/whisper.cpp.git ${WHISPER_DIR} \
+RUN git clone --depth 1 --branch v1.7.4 https://github.com/ggml-org/whisper.cpp.git ${WHISPER_DIR} \
   && cd ${WHISPER_DIR} \
   && cmake -B build -DGGML_NATIVE=OFF -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_EXAMPLES=ON \
   && cmake --build build --config Release -j$(nproc) \
