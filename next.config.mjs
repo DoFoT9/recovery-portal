@@ -21,10 +21,10 @@ export default withPWA({
   // Required for the Docker image (Next.js standalone bundling)
   output: 'standalone',
 
-  experimental: {
-    // Bumped from 10mb to 2000mb in v7.5.1 to allow large video uploads
-    serverActions: { bodySizeLimit: '2000mb' },
-  },
+experimental: {
+  serverActions: { bodySizeLimit: '2000mb' },
+  middlewareClientMaxBodySize: '2gb',
+},
 
   // Allow the better-sqlite3 native binding to load at runtime
   serverExternalPackages: ['better-sqlite3'],
