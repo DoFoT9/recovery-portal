@@ -1,6 +1,6 @@
 {
   "name": "recovery-portal",
-  "version": "7.8.0",
+  "version": "7.8.1",
   "private": false,
   "description": "Self-hosted rehab programme management for physiotherapy and recovery clinics. White-label ready.",
   "homepage": "https://github.com/DoFoT9/recovery-portal",
@@ -24,10 +24,6 @@
     "init:db": "node scripts/init-db.mjs",
     "init:secrets": "bash scripts/init-secrets.sh",
     "reset": "node scripts/reset.mjs",
-    "migrate": "node scripts/migrate-v5.mjs",
-    "migrate:v6": "node scripts/migrate-v6.mjs",
-    "migrate:v6-1": "node scripts/migrate-v6-1.mjs",
-    "migrate:v7-0": "node scripts/migrate-v7-0.mjs",
     "migrate:v7-1": "node scripts/migrate-v7-1.mjs",
     "migrate:v7-2": "node scripts/migrate-v7-2.mjs",
     "migrate:v7-3": "node scripts/migrate-v7-3.mjs",
@@ -35,7 +31,12 @@
     "vapid": "npx web-push generate-vapid-keys",
     "backup": "bash scripts/backup.sh",
     "restore": "bash scripts/restore.sh",
-    "migrate:v7-4": "node scripts/migrate-v7-4.mjs"
+    "migrate:v7-4": "node scripts/migrate-v7-4.mjs",
+    "migrate:v7-4-5": "node scripts/migrate-v7-4-5.mjs",
+    "migrate:v7-5-1": "node scripts/migrate-v7-5-1.mjs",
+    "migrate:v7-5-2": "node scripts/migrate-v7-5-2-client-inbox.mjs",
+    "migrate:v7-6": "node scripts/migrate-v7-6-onboarding.mjs",
+    "migrate:v7-7": "node scripts/migrate-v7-7-client-notes.mjs"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
