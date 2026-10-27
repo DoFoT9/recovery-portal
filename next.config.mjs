@@ -23,7 +23,7 @@ export default withPWA({
 
 experimental: {
   serverActions: { bodySizeLimit: '2000mb' },
-  middlewareClientMaxBodySize: '2gb',
+  proxyClientMaxBodySize: '2gb',
 },
 
   // Allow the better-sqlite3 native binding to load at runtime
