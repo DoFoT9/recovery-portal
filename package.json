@@ -1,6 +1,6 @@
 {
   "name": "recovery-portal",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "private": false,
   "description": "Self-hosted rehab programme management for physiotherapy and recovery clinics. White-label ready.",
   "homepage": "https://github.com/DoFoT9/recovery-portal",
@@ -18,7 +18,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "init:admin": "node scripts/create-admin.mjs",
     "init:db": "node scripts/init-db.mjs",
@@ -48,7 +48,7 @@
     "jose": "^5.9.6",
     "lucide-react": "^0.468.0",
     "next": "^16.4.3",
-    "nodemailer": "^6.9.16",
+    "nodemailer": "^10.2.1",
     "otplib": "^12.0.1",
     "playwright": "^1.61.1",
     "qrcode": "^1.5.4",
@@ -65,7 +65,7 @@
     "@types/better-sqlite3": "^7.6.12",
     "@types/busboy": "^1.5.4",
     "@types/node": "^22.10.2",
-    "@types/nodemailer": "^6.4.17",
+    "@types/nodemailer": "^8.0.2",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
@@ -77,5 +77,9 @@
   },
   "overrides": {
     "serialize-javascript": "^7.1.4"
+  },
+  "allowScripts": {
+    "better-sqlite3@13.0.3": true,
+    "unrs-resolver@1.12.2": true
   }
 }
