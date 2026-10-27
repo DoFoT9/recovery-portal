@@ -4,8 +4,8 @@
 
 :root {
   /* Default blue-collar brand palette. Overridden per-install via inline <style> in root layout. */
-  --brand-rgb: 37 99 235;       /* blue-600 #2563eb */
-  --brand-dark-rgb: 29 78 216;  /* blue-700 #1d4ed8 */
+  --brand-rgb:   20 184 166;       /* blue-600 #2563eb */
+  --brand-dark-rgb:   13 148 136; --brand-light-rgb: 45 212 191; --accent-rgb: 56 189 248;  /* blue-700 #1d4ed8 */
 }
 
 body {

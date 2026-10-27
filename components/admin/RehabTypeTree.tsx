@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -11,18 +11,19 @@ import {
 export function RehabTypeTree({ initial }: { initial: any[] }) {
   const router = useRouter()
   const [items, setItems] = useState<any[]>(initial)
+
+  // v7.5.2 fix (items 3 & 4): keep local state in sync with fresh server data
+  // after router.refresh(). useState only reads `initial` on the first mount.
+  useEffect(() => { setItems(initial) }, [initial])
+
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [editType, setEditType] = useState<string | null>(null)
   const [editStage, setEditStage] = useState<string | null>(null)
   const [newTypeName, setNewTypeName] = useState('')
-
   function toggle(id: string) { setExpanded(s => ({ ...s, [id]: !s[id] })) }
-
   type DragRef = { kind: 'type' | 'stage', id: string, parentId?: string }
   const [drag, setDrag] = useState<DragRef | null>(null)
-
   function onDragStart(d: DragRef) { setDrag(d) }
-
   async function onDropType(targetId: string) {
     if (!drag || drag.kind !== 'type' || drag.id === targetId) { setDrag(null); return }
     const ids = items.map(t => t.id)
@@ -41,7 +42,6 @@ export function RehabTypeTree({ initial }: { initial: any[] }) {
     if (res.ok) toast.success('Reordered')
     else { toast.error('Reorder failed'); router.refresh() }
   }
-
   async function onDropStage(targetTypeId: string, targetStageId: string) {
     if (!drag || drag.kind !== 'stage' || drag.parentId !== targetTypeId) { setDrag(null); return }
     if (drag.id === targetStageId) { setDrag(null); return }
@@ -62,7 +62,6 @@ export function RehabTypeTree({ initial }: { initial: any[] }) {
     if (res.ok) toast.success('Reordered')
     else { toast.error('Reorder failed'); router.refresh() }
   }
-
   async function createType(e: React.FormEvent) {
     e.preventDefault()
     if (!newTypeName.trim()) return
@@ -73,7 +72,6 @@ export function RehabTypeTree({ initial }: { initial: any[] }) {
     if (res.ok) { toast.success('Created'); setNewTypeName(''); router.refresh() }
     else toast.error('Failed')
   }
-
   async function saveType(e: React.FormEvent<HTMLFormElement>, id: string) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
@@ -84,13 +82,11 @@ export function RehabTypeTree({ initial }: { initial: any[] }) {
     if (res.ok) { toast.success('Saved'); setEditType(null); router.refresh() }
     else toast.error('Failed')
   }
-
   async function delType(id: string) {
     if (!confirm('Delete this rehab type? All stages, videos and assignments under it will be removed.')) return
     const res = await fetch('/api/rehab-types', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     if (res.ok) { toast.success('Deleted'); router.refresh() }
   }
-
   async function addStage(rehabTypeId: string) {
     const name = prompt('New stage name:')
     if (!name?.trim()) return
@@ -100,7 +96,6 @@ export function RehabTypeTree({ initial }: { initial: any[] }) {
     })
     if (res.ok) { toast.success('Stage added'); router.refresh() }
   }
-
   async function saveStage(e: React.FormEvent<HTMLFormElement>, id: string) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
@@ -110,26 +105,24 @@ export function RehabTypeTree({ initial }: { initial: any[] }) {
     })
     if (res.ok) { toast.success('Saved'); setEditStage(null); router.refresh() }
   }
-
   async function delStage(id: string) {
     if (!confirm('Delete this stage? Its milestones, videos and assignments will be removed too.')) return
     const res = await fetch('/api/stages', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     if (res.ok) { toast.success('Deleted'); router.refresh() }
   }
-
   return (
     <div className="space-y-4">
-      <form onSubmit={createType} className="card flex gap-2">
+      {/* v7.6: onboarding anchor — "Add a rehab type" step */}
+      <form onSubmit={createType} data-tour="rehab-add" className="card flex gap-2">
         <input className="input" placeholder="New rehab type (e.g. Hip Surgery)"
           value={newTypeName} onChange={e => setNewTypeName(e.target.value)} />
         <button className="btn-primary" type="submit"><Plus className="h-4 w-4" /> Add</button>
       </form>
-
       <div className="card divide-y divide-neutral-200 dark:divide-neutral-800">
         {items.length === 0 && (
           <p className="text-sm text-neutral-500 py-2">No rehab types yet.</p>
         )}
-        {items.map(t => (
+        {items.map((t, ti) => (
           <div
             key={t.id}
             className="py-3 space-y-2"
@@ -169,12 +162,17 @@ export function RehabTypeTree({ initial }: { initial: any[] }) {
                     )}
                   </p>
                 </div>
-                <button onClick={() => addStage(t.id)} className="btn-secondary !py-1 !px-2" title="Add stage"><Plus className="h-4 w-4" /></button>
+                {/* v7.6: onboarding anchor — "Add stages" step (first row only) */}
+                <button
+                  onClick={() => addStage(t.id)}
+                  className="btn-secondary !py-1 !px-2"
+                  title="Add stage"
+                  {...(ti === 0 ? { 'data-tour': 'stage-add' } : {})}
+                ><Plus className="h-4 w-4" /></button>
                 <button onClick={() => setEditType(t.id)} className="btn-secondary !py-1 !px-2" title="Edit"><Pencil className="h-4 w-4" /></button>
                 <button onClick={() => delType(t.id)} className="btn-danger !py-1 !px-2" title="Delete"><Trash2 className="h-4 w-4" /></button>
               </div>
             )}
-
             {expanded[t.id] && (
               <ul className="ml-8 space-y-2">
                 {t.stages.length === 0 && (

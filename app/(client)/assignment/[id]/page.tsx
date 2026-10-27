@@ -10,6 +10,9 @@ import { CommentsThread } from '@/components/client/CommentsThread'
 import { MarkCompleteButton } from '@/components/client/MarkCompleteButton'
 import { MilestoneList } from '@/components/client/MilestoneList'
 import { ProgrammePdfDownloadButton } from '@/components/client/ProgrammePdfDownloadButton'
+// v7.5.2 (item 5): clears the client's unread-reply flag + dashboard banner the moment
+// they open this conversation. Only rendered for the real client owner (not admins).
+import { ClientMarkRepliesRead } from '@/components/client/ClientMarkRepliesRead'
 import {
   getCombinedAssignmentProgress,
   listClientMilestonesForStage,
@@ -20,7 +23,6 @@ export default async function AssignmentDetail({ params }: { params: Promise<{ i
   const user = await requireUser()
   const { id } = await params
   const db = getDb()
-
   const assignment = db.prepare(`
     select ca.*, rt.name as type_name, rt.color as type_color, s.name as stage_name
     from client_assignments ca
@@ -28,10 +30,8 @@ export default async function AssignmentDetail({ params }: { params: Promise<{ i
     left join stages s on s.id = ca.stage_id
     where ca.id = ?
   `).get(id) as any
-
   if (!assignment) notFound()
   if (assignment.client_id !== user.id && user.role !== 'admin') notFound()
-
   type StageBlock = {
     stage_id: string | null
     stage_name: string | null
@@ -39,13 +39,11 @@ export default async function AssignmentDetail({ params }: { params: Promise<{ i
     videos: any[]
   }
   const blocks: StageBlock[] = []
-
   function loadVideosForStage(stageId: string) {
     return db.prepare(
       "select v.*, case when vv.id is null then 0 else 1 end as watched from videos v left join video_views vv on vv.video_id=v.id and vv.client_id=? where v.stage_id=? and v.status='ready' order by v.created_at"
     ).all(user.id, stageId) as any[]
   }
-
   if (assignment.stage_id) {
     blocks.push({
       stage_id: assignment.stage_id,
@@ -72,12 +70,16 @@ export default async function AssignmentDetail({ params }: { params: Promise<{ i
       })
     }
   }
-
   const progress = getCombinedAssignmentProgress(assignment.id)
   const isAdminViewing = user.role === 'admin' && assignment.client_id !== user.id
-
   return (
     <div className="max-w-3xl mx-auto p-4 lg:p-6 space-y-6">
+      {/* v7.5.2 (item 5): mark admin replies read for the client on open.
+          Guarded by !isAdminViewing so an admin preview doesn't clear the
+          client's own unread flag. */}
+      {!isAdminViewing && (
+        <ClientMarkRepliesRead assignmentId={assignment.id} />
+      )}
       {/* v7.4.5.1: if an admin landed here (e.g. via a notification), point them back to where the PDF tools live */}
       {isAdminViewing && (
         <div className="card bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-900/50 text-sm">
@@ -89,7 +91,6 @@ export default async function AssignmentDetail({ params }: { params: Promise<{ i
           </p>
         </div>
       )}
-
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full" style={{ background: assignment.type_color }} />
@@ -110,7 +111,6 @@ export default async function AssignmentDetail({ params }: { params: Promise<{ i
           )}
         </div>
       </div>
-
       {assignment.admin_recommendations && (
         <div className="card">
           <h2 className="font-semibold mb-2">Clinician recommendations</h2>
@@ -119,7 +119,6 @@ export default async function AssignmentDetail({ params }: { params: Promise<{ i
           </p>
         </div>
       )}
-
       <div className="space-y-6">
         {blocks.length === 0 && (
           <p className="text-sm text-neutral-500">No content yet for this assignment.</p>
@@ -153,7 +152,6 @@ export default async function AssignmentDetail({ params }: { params: Promise<{ i
           </section>
         ))}
       </div>
-
       <CommentsThread
         assignmentId={assignment.id}
         currentUserId={user.id}

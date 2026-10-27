@@ -1,4 +1,5 @@
 #!/bin/sh
+
 # Recovery Portal Docker entrypoint
 # Handles: ownership fix-up, secret generation, DB init, migrations, then app start.
 # Designed to be run as root inside the container so it can correct bind-mount
@@ -15,7 +16,6 @@ SECRETS_FILE="$DATA_DIR/secrets.env"
 # 0. Fix ownership of the data volume
 # ---------------------------------------------------------------------------
 mkdir -p "$DATA_DIR"
-
 if [ "$(id -u)" = "0" ]; then
   current_uid=$(stat -c '%u' "$DATA_DIR" 2>/dev/null || echo "")
   if [ "$current_uid" != "$APP_UID" ]; then
@@ -39,7 +39,6 @@ generate_hex() {
 }
 
 needs_save=0
-
 if [ -z "${AUTH_SECRET:-}" ]; then
   AUTH_SECRET=$(generate_hex)
   export AUTH_SECRET
@@ -77,7 +76,6 @@ fi
 # ---------------------------------------------------------------------------
 echo ""
 echo "-> Initialising database schema and running migrations"
-
 if [ "$(id -u)" = "0" ]; then
   gosu "$APP_UID:$APP_GID" env \
     DATA_DIR="$DATA_DIR" \
@@ -89,11 +87,32 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 3. Hand off to the real command, dropping privileges if we are root
+# 3. Startup notice - point first-run users at the setup wizard
+#    (Next.js prints its own Local/Network lines after this banner.)
 # ---------------------------------------------------------------------------
-echo ""
-echo "-> Starting application"
+PORT="${PORT:-3000}"
 
+# Best-effort primary LAN IP so the URL is copy-pasteable; falls back gracefully.
+HOST_IP=$(hostname -i 2>/dev/null | awk '{print $1}')
+[ -z "$HOST_IP" ] && HOST_IP="<server-ip>"
+
+echo ""
+echo "  ============================================================"
+echo "   Recovery Portal"
+echo ""
+echo "   First run? Finish setup and create your admin account here:"
+echo "     -> http://${HOST_IP}:${PORT}/setup"
+echo "     -> http://localhost:${PORT}/setup   (if you're on this machine)"
+echo ""
+echo "   Already set up? Sign in at:"
+echo "     -> http://${HOST_IP}:${PORT}"
+echo "  ============================================================"
+echo ""
+
+# ---------------------------------------------------------------------------
+# 4. Hand off to the real command, dropping privileges if we are root
+# ---------------------------------------------------------------------------
+echo "-> Starting application"
 if [ "$(id -u)" = "0" ]; then
   exec gosu "$APP_UID:$APP_GID" "$@"
 else

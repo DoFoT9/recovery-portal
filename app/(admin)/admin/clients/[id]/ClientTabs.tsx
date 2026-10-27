@@ -4,18 +4,17 @@ import Link from 'next/link'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import {
   Activity, ClipboardList, MessageCircle, Settings as SettingsIcon,
-  ArrowLeft, ChevronRight,
+  ArrowLeft, ChevronRight, StickyNote,
 } from 'lucide-react'
 import { AssignmentManager } from '@/components/admin/AssignmentManager'
 import { ClientDetailsEditor } from '@/components/admin/ClientDetailsEditor'
+import { ClientNotes } from '@/components/admin/ClientNotes'
 import { CommentsThread } from '@/components/client/CommentsThread'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { ProgressBar } from '@/components/shared/ProgressBar'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { timeAgo } from '@/lib/utils'
-
-export type TabKey = 'overview' | 'assignments' | 'conversations' | 'account'
-
+export type TabKey = 'overview' | 'assignments' | 'conversations' | 'notes' | 'account'
 interface Props {
   initialTab: TabKey
   client: any
@@ -25,21 +24,19 @@ interface Props {
   activity: any[]
   adminUserId: string
 }
-
-const TAB_DEFS: { key: TabKey; label: string; Icon: typeof Activity }[] = [
+const TAB_DEFS: { key: TabKey; label: string; Icon: typeof Activity; tourId?: string }[] = [
   { key: 'overview',      label: 'Overview',      Icon: Activity },
   { key: 'assignments',   label: 'Assignments',   Icon: ClipboardList },
   { key: 'conversations', label: 'Conversations', Icon: MessageCircle },
+  { key: 'notes',         label: 'Notes',         Icon: StickyNote, tourId: 'client-notes' },
   { key: 'account',       label: 'Account',       Icon: SettingsIcon },
 ]
-
 const KIND_LABEL: Record<string, string> = {
   comment:   'commented on',
   milestone: 'completed milestone',
   completed: 'completed assignment',
   video:     'watched video',
 }
-
 export default function ClientTabs({
   initialTab, client, rehabTypes, assignments, unreadByAssignment, activity, adminUserId,
 }: Props) {
@@ -48,9 +45,7 @@ export default function ClientTabs({
   const params = useSearchParams()
   const [active, setActive] = useState<TabKey>(initialTab)
   const [, startTransition] = useTransition()
-
   const clearedRef = useRef(false)
-
   useEffect(() => {
     if (active !== 'conversations') return
     if (clearedRef.current) return
@@ -61,20 +56,17 @@ export default function ClientTabs({
       })
       .catch(() => {})
   }, [active, client.id])
-
   const setTab = (k: TabKey) => {
     setActive(k)
     const sp = new URLSearchParams(params.toString())
     sp.set('tab', k)
     startTransition(() => router.replace(`${pathname}?${sp.toString()}`))
   }
-
   const activeCount    = assignments.filter(a => a.status !== 'completed').length
   const completedCount = assignments.filter(a => a.status === 'completed').length
   const nextAssignment = assignments.find(a => a.status !== 'completed')
   const hasAnyComments = assignments.length > 0
   const totalUnread = Object.values(unreadByAssignment).reduce((a, b) => a + b, 0)
-
   return (
     <div className="max-w-5xl mx-auto p-4 lg:p-6 space-y-4">
       <div>
@@ -92,10 +84,9 @@ export default function ClientTabs({
         </h1>
         <p className="text-sm text-neutral-500">{client.email}</p>
       </div>
-
       <div className="border-b border-neutral-200 dark:border-neutral-800">
         <div className="flex gap-1 sm:gap-4 overflow-x-auto" role="tablist">
-          {TAB_DEFS.map(({ key, label, Icon }) => {
+          {TAB_DEFS.map(({ key, label, Icon, tourId }) => {
             const isActive = active === key
             const showUnreadBadge = key === 'conversations' && !isActive && totalUnread > 0
             return (
@@ -103,6 +94,7 @@ export default function ClientTabs({
                 key={key}
                 role="tab"
                 aria-selected={isActive}
+                data-tour={tourId}
                 onClick={() => setTab(key)}
                 className={`flex items-center gap-2 py-2.5 px-3 text-sm border-b-2 -mb-px transition whitespace-nowrap ${
                   isActive
@@ -122,7 +114,6 @@ export default function ClientTabs({
           })}
         </div>
       </div>
-
       {active === 'overview' && (
         <div className="grid gap-4 lg:grid-cols-3">
           <section className="card lg:col-span-2 space-y-3">
@@ -199,7 +190,6 @@ export default function ClientTabs({
           </section>
         </div>
       )}
-
       {active === 'assignments' && (
         <AssignmentManager
           clientId={client.id}
@@ -210,7 +200,6 @@ export default function ClientTabs({
           currentUserId={adminUserId}
         />
       )}
-
       {active === 'conversations' && (
         <div className="space-y-4">
           {!hasAnyComments ? (
@@ -254,7 +243,9 @@ export default function ClientTabs({
           )}
         </div>
       )}
-
+      {active === 'notes' && (
+        <ClientNotes clientId={client.id} />
+      )}
       {active === 'account' && (
         <ClientDetailsEditor client={client} />
       )}

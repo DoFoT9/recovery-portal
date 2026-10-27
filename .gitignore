@@ -44,3 +44,8 @@ yarn-error.log*
 
 # Release artifact zips
 recovery-portal-*.zip
+
+# Installer leftovers (never commit)
+.patch-backup-*/
+recovery-portal-*/
+*-patch/

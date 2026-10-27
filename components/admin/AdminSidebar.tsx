@@ -1,33 +1,30 @@
 'use client'
-
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
 import {
   Home, Users, FolderTree, Video, Upload, BarChart3, Inbox, Settings, X,
 } from 'lucide-react'
-
 type NavItem = {
   href: string
   label: string
   icon: typeof Home
   isInbox?: boolean
+  // v7.6: onboarding tour anchor for this nav item.
+  tourId?: string
 }
-
 const items: NavItem[] = [
   { href: '/admin',               label: 'Home',        icon: Home },
-  { href: '/admin/clients',       label: 'Clients',     icon: Users },
+  { href: '/admin/clients',       label: 'Clients',     icon: Users,      tourId: 'nav-clients' },
   { href: '/admin/inbox',         label: 'Inbox',       icon: Inbox, isInbox: true },
-  { href: '/admin/rehab-types',   label: 'Rehab Types', icon: FolderTree },
+  { href: '/admin/rehab-types',   label: 'Rehab Types', icon: FolderTree, tourId: 'nav-rehab' },
   { href: '/admin/videos',        label: 'Videos',      icon: Video },
-  { href: '/admin/videos/upload', label: 'Upload',      icon: Upload },
+  { href: '/admin/videos/upload', label: 'Upload',      icon: Upload,     tourId: 'nav-upload' },
   { href: '/admin/reports',       label: 'Reports',     icon: BarChart3 },
-  { href: '/admin/settings',      label: 'Settings',    icon: Settings },
+  { href: '/admin/settings',      label: 'Settings',    icon: Settings,   tourId: 'nav-settings' },
 ]
-
 function useInboxUnreadCount(pollMs = 15_000) {
   const [count, setCount] = useState<number>(0)
-
   const fetchCount = useCallback(async () => {
     try {
       const res = await fetch('/api/inbox/unread-count', { cache: 'no-store' })
@@ -36,7 +33,6 @@ function useInboxUnreadCount(pollMs = 15_000) {
       setCount(data.count ?? 0)
     } catch {}
   }, [])
-
   useEffect(() => {
     let cancelled = false
     const run = async () => { if (!cancelled) await fetchCount() }
@@ -56,18 +52,14 @@ function useInboxUnreadCount(pollMs = 15_000) {
       window.removeEventListener('focus', onFocus)
     }
   }, [pollMs, fetchCount])
-
   return count
 }
-
 export function AdminSidebar({
   open, onClose,
 }: { open: boolean, onClose: () => void }) {
   const pathname = usePathname()
   const unreadCount = useInboxUnreadCount()
-
   useEffect(() => { onClose() }, [pathname]) // eslint-disable-line
-
   function isActive(href: string) {
     if (href === '/admin') return pathname === '/admin'
     if (pathname === href) return true
@@ -81,16 +73,16 @@ export function AdminSidebar({
     }
     return false
   }
-
   const nav = (
     <nav className="flex flex-col gap-1">
-      {items.map(({ href, label, icon: Icon, isInbox }) => {
+      {items.map(({ href, label, icon: Icon, isInbox, tourId }) => {
         const active = isActive(href)
         const hasUnread = isInbox && unreadCount > 0
         return (
           <Link
             key={href}
             href={href}
+            data-tour={tourId}
             className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
               active
                 ? 'bg-brand text-white'
@@ -124,7 +116,6 @@ export function AdminSidebar({
       })}
     </nav>
   )
-
   return (
     <>
       <aside className="hidden lg:block w-60 shrink-0 border-r border-neutral-200 dark:border-neutral-800 p-4">
