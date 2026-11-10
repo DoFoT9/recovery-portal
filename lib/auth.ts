@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { SignJWT, jwtVerify } from 'jose'
 import bcrypt from 'bcryptjs'
 import { getDb } from '@/lib/db'
+import { ssoEnforcedForAdmins } from '@/lib/oidc'
 
 const COOKIE = 'rv_session'
 
@@ -77,6 +78,8 @@ export async function verifyPasswordOnly(email: string, password: string) {
   const user = db.prepare("select * from users where lower(email)=lower(?)").get(email) as any
   if (!user) return null
   if (user.disabled_at) return null
+  // v8.1.0: when SSO is enforced, clinicians (admins) must sign in through the identity provider
+  if (user.role === 'admin' && ssoEnforcedForAdmins()) return null
   const ok = await bcrypt.compare(password, user.password_hash)
   return ok ? user : null
 }
